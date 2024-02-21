@@ -5,6 +5,8 @@ services:
       context: './'
       dockerfile: Dockerfile
     container_name: cutter_bot
+    depends_on:
+      - cutter_db
     ports:
       - "6699:6699"
     networks:
@@ -17,8 +19,6 @@ services:
       POSTGRES_USER: konstantin
       POSTGRES_PASSWORD: Lp2nZxYOCcPhzrXj
       POSTGRES_DB: cutter
-    depends_on:
-      - cutter_bot
     ports:
       - "8989:5432"
     volumes:
@@ -31,4 +31,3 @@ networks:
 
 volumes:
   postgres_data:
-  beauty_data:
