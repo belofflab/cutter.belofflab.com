@@ -3,7 +3,6 @@ from database import models
 from typing import Union
 from data.config import BASE_DIR, SUPPORT_LINK
 from keyboards.user import inline
-from filters.is_admin import IsAdmin
 from loader import dp
 
 
@@ -29,7 +28,7 @@ async def get_or_create_user(message: types.Message):
     return s_user
 
 
-@dp.message_handler(IsAdmin(), commands="start")
+@dp.message_handler(commands="start")
 async def start(message: Union[types.Message, types.CallbackQuery], **kwargs) -> None:
     user: models.User = await get_or_create_user(message=message)
     if isinstance(message, types.Message):
