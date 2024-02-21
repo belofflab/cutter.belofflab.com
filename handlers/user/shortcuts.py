@@ -126,9 +126,9 @@ SHORTCUT_MESSAGE += """/s/{shortcut.code}
 Цель: {shortcut.target_link}
 
 Всего (переходы): {shortcut.click_count}
-Всего (уникальнее переходы): {shortcut.unique_click_count}
+Всего (уникальные переходы): {shortcut.unique_click_count}
 
-Уникальнее переходы:
+Уникальные переходы:
 Сутки: {count_1_day}
 Неделя: {count_7_days}
 Месяц: {count_31_days}
