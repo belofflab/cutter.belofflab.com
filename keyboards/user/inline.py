@@ -30,7 +30,7 @@ async def list_shortcuts(uid: int, current_page: str):
     for ushort in next_page:
         markup.row(
             InlineKeyboardButton(
-                text=ushort.target_link,
+                text=ushort.target_link if len(ushort.target_link) < 20 else ushort.target_link[:20] + "...",
                 callback_data=make_shortcuts_cd(
                     level=CURRENT_LEVEL + 1, sid=ushort.shortcut_id
                 ),
