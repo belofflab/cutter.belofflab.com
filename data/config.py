@@ -9,7 +9,7 @@ ENV_FILE = BASE_DIR / ".env"
 if os.path.exists(ENV_FILE):
     load_dotenv(ENV_FILE)
 
-SUPPORT_LINK = "https://t.me/belofflab"
+SUPPORT_LINK = os.getenv("SUPPORT_LINK", "https://t.me/support")
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 DATABASE_URL = os.getenv("DATABASE_URL")
 ADMIN_IDS = [int(aid) for aid in os.getenv("ADMIN_IDS").split(" ")]

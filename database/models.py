@@ -7,7 +7,6 @@ from sqlalchemy import (
     String,
     DateTime,
     Boolean,
-    Table,
 )
 
 db = Gino()
