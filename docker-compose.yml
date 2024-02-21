@@ -1,0 +1,34 @@
+version: "3"
+services:
+  cutter_bot:
+    build:
+      context: './'
+      dockerfile: Dockerfile
+    container_name: cutter_bot
+    ports:
+      - "6699:6699"
+    networks:
+      - project-network
+
+  cutter_db:
+    image: postgres:latest
+    container_name: cutter_db
+    environment:
+      POSTGRES_USER: konstantin
+      POSTGRES_PASSWORD: Lp2nZxYOCcPhzrXj
+      POSTGRES_DB: cutter
+    depends_on:
+      - cutter_bot
+    ports:
+      - "8989:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - project-network
+
+networks:
+  project-network:
+
+volumes:
+  postgres_data:
+  beauty_data:
