@@ -86,31 +86,55 @@ async def get_shortcut_by_tlink(target_link, uid):
 async def get_forwarding_clients_summary(sid):
     end_date = datetime.now()
     count_1_day = len(
-        await models.ForwardingClient.query.where(
-            and_(
-                models.ForwardingClient.timestamp >= end_date - timedelta(days=1),
-                models.ForwardingClient.timestamp <= end_date,
-                models.ShortcutClient.shortcut_id == int(sid),
+        (
+            await models.ShortcutClient.join(
+                models.ForwardingClient,
+                models.ShortcutClient.client_id == models.ForwardingClient.id,
             )
-        ).gino.all()
+            .select()
+            .where(
+                and_(
+                    models.ShortcutClient.shortcut_id == int(sid),
+                    models.ForwardingClient.timestamp >= end_date - timedelta(days=1),
+                    models.ForwardingClient.timestamp <= end_date,
+                )
+            )
+            .gino.all()
+        )
     )
     count_7_days = len(
-        await models.ForwardingClient.query.where(
-            and_(
-                models.ForwardingClient.timestamp >= end_date - timedelta(days=7),
-                models.ForwardingClient.timestamp <= end_date,
-                models.ShortcutClient.shortcut_id == int(sid),
+        (
+            await models.ShortcutClient.join(
+                models.ForwardingClient,
+                models.ShortcutClient.client_id == models.ForwardingClient.id,
             )
-        ).gino.all()
+            .select()
+            .where(
+                and_(
+                    models.ShortcutClient.shortcut_id == int(sid),
+                    models.ForwardingClient.timestamp >= end_date - timedelta(days=7),
+                    models.ForwardingClient.timestamp <= end_date,
+                )
+            )
+            .gino.all()
+        )
     )
     count_31_days = len(
-        await models.ForwardingClient.query.where(
-            and_(
-                models.ForwardingClient.timestamp >= end_date - timedelta(days=31),
-                models.ForwardingClient.timestamp <= end_date,
-                models.ShortcutClient.shortcut_id == int(sid),
+        (
+            await models.ShortcutClient.join(
+                models.ForwardingClient,
+                models.ShortcutClient.client_id == models.ForwardingClient.id,
             )
-        ).gino.all()
+            .select()
+            .where(
+                and_(
+                    models.ShortcutClient.shortcut_id == int(sid),
+                    models.ForwardingClient.timestamp >= end_date - timedelta(days=31),
+                    models.ForwardingClient.timestamp <= end_date,
+                )
+            )
+            .gino.all()
+        )
     )
 
     return {
@@ -167,7 +191,10 @@ async def handle_link_any(message: types.Message, state: FSMContext):
     link = message.text
     await message.delete()
     if WEB_APP_DOMAIN in link:
-        return await message.answer_photo(photo=types.InputFile(BASE_DIR / "data/shortenner.png"), caption="Мы не нашли ссылку в базе...")
+        return await message.answer_photo(
+            photo=types.InputFile(BASE_DIR / "data/shortenner.png"),
+            caption="Мы не нашли ссылку в базе...",
+        )
     shortcut = await get_shortcut_by_tlink(target_link=link, uid=message.from_user.id)
     if shortcut:
         flients = await get_forwarding_clients_summary(shortcut.shortcut_id)
@@ -221,17 +248,16 @@ async def domain_steps(callback: types.CallbackQuery, state: FSMContext):
             caption="Вы уверены, что хотите удалить?",
             reply_markup=types.InlineKeyboardMarkup(row_width=2).add(
                 types.InlineKeyboardButton(
-                    text="Да",
-                    callback_data=f"remove_domain#{sid}#yes"
+                    text="Да", callback_data=f"remove_domain#{sid}#yes"
                 ),
                 types.InlineKeyboardButton(
-                    text="Нет",
-                    callback_data=f"remove_domain#{sid}#no"
-                )
-            )
+                    text="Нет", callback_data=f"remove_domain#{sid}#no"
+                ),
+            ),
         )
 
-@dp.callback_query_handler(lambda c:c.data.startswith("remove_domain"))
+
+@dp.callback_query_handler(lambda c: c.data.startswith("remove_domain"))
 async def remove_domain_confirm(callback: types.CallbackQuery):
     splitted_data = callback.data.split("#")
     sid = splitted_data[1]
@@ -268,11 +294,12 @@ async def target_link_set(callback: types.CallbackQuery, state: FSMContext):
             message_id=last_message_id,
             reply_markup=types.InlineKeyboardMarkup(row_width=1).add(
                 types.InlineKeyboardButton(
-                    text="Назад", callback_data=inline.make_shortcuts_cd(level=1),
+                    text="Назад",
+                    callback_data=inline.make_shortcuts_cd(level=1),
                 ),
                 types.InlineKeyboardButton(
                     text="Удалить", callback_data=f"domain#remove{new_shortcut.id}"
-                )
+                ),
             ),
         )
 
