@@ -1,7 +1,7 @@
 import secrets
 import re
 from datetime import datetime, timedelta
-from sqlalchemy import and_, func
+from sqlalchemy import and_
 from data.config import WEB_APP_DOMAIN, BASE_DIR
 from aiogram import types
 from database import models
@@ -95,8 +95,8 @@ async def get_forwarding_clients_summary(sid):
             .where(
                 and_(
                     models.ShortcutClient.shortcut_id == int(sid),
-                    models.ForwardingClient.timestamp >= end_date - timedelta(days=1),
-                    models.ForwardingClient.timestamp <= end_date,
+                    models.ShortcutClient.created_at >= end_date - timedelta(days=1),
+                    models.ShortcutClient.created_at <= end_date,
                 )
             )
             .gino.all()
@@ -112,8 +112,8 @@ async def get_forwarding_clients_summary(sid):
             .where(
                 and_(
                     models.ShortcutClient.shortcut_id == int(sid),
-                    models.ForwardingClient.timestamp >= end_date - timedelta(days=7),
-                    models.ForwardingClient.timestamp <= end_date,
+                    models.ShortcutClient.created_at >= end_date - timedelta(days=7),
+                    models.ShortcutClient.created_at <= end_date,
                 )
             )
             .gino.all()
@@ -129,8 +129,8 @@ async def get_forwarding_clients_summary(sid):
             .where(
                 and_(
                     models.ShortcutClient.shortcut_id == int(sid),
-                    models.ForwardingClient.timestamp >= end_date - timedelta(days=31),
-                    models.ForwardingClient.timestamp <= end_date,
+                    models.ShortcutClient.created_at >= end_date - timedelta(days=31),
+                    models.ShortcutClient.created_at <= end_date,
                 )
             )
             .gino.all()
