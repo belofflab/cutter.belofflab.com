@@ -1,7 +1,5 @@
 import secrets
 import re
-from datetime import datetime, timedelta
-from sqlalchemy import and_
 from data.config import WEB_APP_DOMAIN, BASE_DIR
 from aiogram import types
 from database import models
@@ -10,140 +8,11 @@ from aiogram.dispatcher import FSMContext
 from sqlalchemy.exc import IntegrityError
 from states.domain import AddDomain
 from .menu import start
+from database.manager import shortcuts
 from loader import dp, bot
 from filters.is_link import IsLink
 
-domain_regex = rf"https?://{WEB_APP_DOMAIN}/s/([^/]+)"
-
-
-async def delete_shortcut(shortcut_id):
-    shortcut = await models.Shortcut.query.where(
-        models.Shortcut.id == shortcut_id
-    ).gino.first()
-    if shortcut:
-        user_shortcut = await models.UserShortcut.query.where(
-            models.UserShortcut.shortcut_id == shortcut_id
-        ).gino.first()
-        if user_shortcut:
-            await user_shortcut.delete()
-
-        await shortcut.delete()
-    else:
-        print(f"Shortcut with id {shortcut_id} not found.")
-
-
-async def get_shortcut_by_id(sid, uid):
-    shortcut = (
-        await models.UserShortcut.join(
-            models.Shortcut, models.UserShortcut.shortcut_id == models.Shortcut.id
-        )
-        .select()
-        .where(
-            and_(
-                models.UserShortcut.user_id == uid,
-                models.Shortcut.id == int(sid),
-            )
-        )
-        .gino.first()
-    )
-    return shortcut
-
-
-async def get_shortcut_by_code(shortcode, uid):
-    shortcut = (
-        await models.UserShortcut.join(
-            models.Shortcut, models.UserShortcut.shortcut_id == models.Shortcut.id
-        )
-        .select()
-        .where(
-            and_(
-                models.UserShortcut.user_id == uid,
-                models.Shortcut.code == shortcode,
-            )
-        )
-        .gino.first()
-    )
-    return shortcut
-
-
-async def get_shortcut_by_tlink(target_link, uid):
-    shortcut = (
-        await models.UserShortcut.join(
-            models.Shortcut, models.UserShortcut.shortcut_id == models.Shortcut.id
-        )
-        .select()
-        .where(
-            and_(
-                models.UserShortcut.user_id == uid,
-                models.Shortcut.target_link == target_link,
-            )
-        )
-        .gino.first()
-    )
-    return shortcut
-
-
-async def get_forwarding_clients_summary(sid):
-    end_date = datetime.now()
-    count_1_day = len(
-        (
-            await models.ShortcutClient.join(
-                models.ForwardingClient,
-                models.ShortcutClient.client_id == models.ForwardingClient.id,
-            )
-            .select()
-            .where(
-                and_(
-                    models.ShortcutClient.shortcut_id == int(sid),
-                    models.ShortcutClient.created_at >= end_date - timedelta(days=1),
-                    models.ShortcutClient.created_at <= end_date,
-                )
-            )
-            .gino.all()
-        )
-    )
-    count_7_days = len(
-        (
-            await models.ShortcutClient.join(
-                models.ForwardingClient,
-                models.ShortcutClient.client_id == models.ForwardingClient.id,
-            )
-            .select()
-            .where(
-                and_(
-                    models.ShortcutClient.shortcut_id == int(sid),
-                    models.ShortcutClient.created_at >= end_date - timedelta(days=7),
-                    models.ShortcutClient.created_at <= end_date,
-                )
-            )
-            .gino.all()
-        )
-    )
-    count_31_days = len(
-        (
-            await models.ShortcutClient.join(
-                models.ForwardingClient,
-                models.ShortcutClient.client_id == models.ForwardingClient.id,
-            )
-            .select()
-            .where(
-                and_(
-                    models.ShortcutClient.shortcut_id == int(sid),
-                    models.ShortcutClient.created_at >= end_date - timedelta(days=31),
-                    models.ShortcutClient.created_at <= end_date,
-                )
-            )
-            .gino.all()
-        )
-    )
-
-    return {
-        "count_1_day": count_1_day,
-        "count_7_days": count_7_days,
-        "count_31_days": count_31_days,
-    }
-
-
+DOMAIN_REGEX = rf"https?://{WEB_APP_DOMAIN}/s/([^/]+)"
 SHORTCUT_MESSAGE = f"Ссылка: https://{WEB_APP_DOMAIN}"
 SHORTCUT_MESSAGE += """/s/{shortcut.code}
 
@@ -153,26 +22,27 @@ SHORTCUT_MESSAGE += """/s/{shortcut.code}
 Всего (уникальные переходы): {shortcut.unique_click_count}
 
 Уникальные переходы:
-Сутки: {count_1_day}
-Неделя: {count_7_days}
-Месяц: {count_31_days}
+Сутки: {count_1_day[count]}
+Неделя: {count_7_days[count]}
+Месяц: {count_31_days[count]}
 """
 
 
-@dp.message_handler(regexp=domain_regex)
+@dp.message_handler(regexp=DOMAIN_REGEX)
 async def handle_link_main(message: types.Message):
     link = message.text
     await message.delete()
-    match = re.match(domain_regex, link)
+    match = re.match(DOMAIN_REGEX, link)
     if match:
         shortcode = match.group(1)
-        shortcut = await get_shortcut_by_code(
+        shortcut = await shortcuts.get_by_code(
             shortcode=shortcode, uid=message.from_user.id
         )
         if shortcut:
-            flients = await get_forwarding_clients_summary(shortcut.shortcut_id)
+            flients = await shortcuts.get_forwarding_clients(shortcut.shortcut_id)
             await message.answer_photo(
                 photo=types.InputFile(BASE_DIR / "data/shortenner.png"),
+
                 caption=SHORTCUT_MESSAGE.format(shortcut=shortcut, **flients),
                 reply_markup=types.InlineKeyboardMarkup(row_width=1).add(
                     types.InlineKeyboardButton(
@@ -195,12 +65,12 @@ async def handle_link_any(message: types.Message, state: FSMContext):
             photo=types.InputFile(BASE_DIR / "data/shortenner.png"),
             caption="Мы не нашли ссылку в базе...",
         )
-    shortcut = await get_shortcut_by_tlink(target_link=link, uid=message.from_user.id)
+    shortcut = await shortcuts.get_by_tlink(target_link=link, uid=message.from_user.id)
     if shortcut:
-        flients = await get_forwarding_clients_summary(shortcut.shortcut_id)
+        flients = await shortcuts.get_forwarding_clients(shortcut.shortcut_id)
         await message.answer_photo(
             photo=types.InputFile(BASE_DIR / "data/shortenner.png"),
-            caption=SHORTCUT_MESSAGE.format(shortcut=shortcut, **flients),
+            caption=SHORTCUT_MESSAGE.format(shortcut=shortcut, flients=flients),
             reply_markup=types.InlineKeyboardMarkup(row_width=1).add(
                 types.InlineKeyboardButton(
                     text="Удалить", callback_data=f"domain#remove{shortcut.shortcut_id}"
@@ -262,9 +132,8 @@ async def remove_domain_confirm(callback: types.CallbackQuery):
     splitted_data = callback.data.split("#")
     sid = splitted_data[1]
     res = splitted_data[2]
-
     if res == "yes":
-        await delete_shortcut(int(sid))
+        await shortcuts.delete(int(sid))
         await list_shortcuts(callback=callback, spage=1)
     elif res == "no":
         await show_shortcut(callback=callback, sid=sid, spage=1)
@@ -287,7 +156,7 @@ async def target_link_set(callback: types.CallbackQuery, state: FSMContext):
             shortcut_id=new_shortcut.id,
         )
         await state.finish()
-        flients = await get_forwarding_clients_summary(new_shortcut.id)
+        flients = await shortcuts.get_forwarding_clients(new_shortcut.id)
         await bot.edit_message_caption(
             chat_id=callback.from_user.id,
             caption=SHORTCUT_MESSAGE.format(shortcut=new_shortcut, **flients),
@@ -314,8 +183,8 @@ async def list_shortcuts(callback: types.CallbackQuery, spage: str, **kwargs):
 
 async def show_shortcut(callback: types.CallbackQuery, sid: str, spage: str, **kwargs):
     markup = await inline.show_shortcut(sid=sid, spage=spage)
-    shortcut = await get_shortcut_by_id(sid=sid, uid=callback.from_user.id)
-    flients = await get_forwarding_clients_summary(shortcut.shortcut_id)
+    shortcut = await shortcuts.get_by_id(sid=sid, uid=callback.from_user.id)
+    flients = await shortcuts.get_forwarding_clients(shortcut.shortcut_id)
     await callback.message.edit_caption(
         caption=SHORTCUT_MESSAGE.format(shortcut=shortcut, **flients),
         reply_markup=markup,
