@@ -78,15 +78,6 @@ async def get_forwarding_clients(sid: str) -> dict:
             ShortcutClient.created_at <= end_date,
         )
     ).gino.all()
-    for key, value in steps.items():
-        flients = [
-            el
-            for el in flients
-            if el.created_at >= end_date - timedelta(days=value["delta"])
-            and el.created_at <= end_date
-        ]
-        steps[key]["data"] = flients
-        steps[key]["count"] = len(flients)
     steps.update(
         {
             UPPER_LIMIT_KEY: {
@@ -97,4 +88,13 @@ async def get_forwarding_clients(sid: str) -> dict:
             }
         }
     )
+    for key, value in steps.items():
+        flients = [
+            el
+            for el in flients
+            if el.created_at >= end_date - timedelta(days=value["delta"])
+            and el.created_at <= end_date
+        ]
+        steps[key]["data"] = flients
+        steps[key]["count"] = len(flients)
     return steps
