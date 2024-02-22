@@ -36,7 +36,7 @@ async def list_shortcuts(uid: int, current_page: str):
                 ),
             )
         )
-    if len(ushorts) > 0:
+    if len(ushorts) > LINK_PER_PAGE:
         markup.row(
             InlineKeyboardButton(
                 text="<<",
