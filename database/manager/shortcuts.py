@@ -89,6 +89,8 @@ async def get_forwarding_clients(sid: str) -> dict:
         }
     )
     for key, value in steps.items():
+        if value["delta"] == UPPER_LIMIT:
+            continue
         flients = [
             el
             for el in flients
