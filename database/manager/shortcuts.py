@@ -67,8 +67,8 @@ async def get_forwarding_clients(sid: str) -> dict:
     UPPER_LIMIT_NAME = "Месяц"
     UPPER_LIMIT_KEY = "count_31_days"
     steps = {
-        "count_1_day": {"delta": 1, "name": "Сутки", "count": 0, "data": []},
         "count_7_days": {"delta": 7, "name": "Неделя", "count": 0, "data": []},
+        "count_1_day": {"delta": 1, "name": "Сутки", "count": 0, "data": []},
     }
     end_date = datetime.now()
     flients = await ShortcutClient.query.where(
