@@ -32,6 +32,10 @@ async def get_or_create_user(message: types.Message):
 async def start(message: Union[types.Message, types.CallbackQuery], **kwargs) -> None:
     user: models.User = await get_or_create_user(message=message)
     if isinstance(message, types.Message):
+        margs = message.get_args()
+        if "dl" in margs:
+            vid = margs.split("dl")[-1]
+            await message.answer(f"Получено видео для скачивания: {vid}\n\nДанный функционал в разработке!")
         await message.answer_photo(
             photo=types.InputFile(BASE_DIR / "data/shortenner.png"),
             caption=f"""
