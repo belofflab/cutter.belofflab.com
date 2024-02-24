@@ -40,7 +40,7 @@ async def inline_search(query: types.InlineQuery):
                         f"{'<b>Звезды: </b>' + ', '.join([pornstar.pornstar_name for pornstar in video.pornstars]) if video.pornstars else ''}\n"
                         f"<b>Продолжительность:</b> {video.duration}\n\n"
                         f"{' '.join(['#' + tag.tag_name.replace(' ', '_') for tag in video.tags])}\n\n"
-                        f"<a href='{video.url}'>Смотреть</a> <a href='https://t.me/linkShorterBBot?start=dl{video.video_id}'>Скачать</a>"
+                        f"<a href='{video.url}'>Смотреть</a> | <a href='https://t.me/linkShorterBBot?start=dl{video.video_id}'>Скачать</a>"
                     ),
                     disable_web_page_preview=True,
                 ),
